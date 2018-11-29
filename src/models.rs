@@ -1,3 +1,7 @@
+pub trait Render {
+    fn render(&self) -> String;
+}
+
 #[derive(Debug, Deserialize)]
 pub struct ChorePile {
     pub day: Option<u8>,
@@ -15,7 +19,7 @@ pub struct ChoreData {
     pub first_person: String,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct ChoreChunk {
     pub person: String,
     pub chores: Vec<String>,
@@ -30,7 +34,7 @@ impl ChoreChunk {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct ChoreDay {
     pub day: u8,
     pub chunks: Vec<ChoreChunk>,
@@ -65,6 +69,10 @@ impl ChoreDay {
             let chunk = &mut chunks[chunk_index];
             chunk.add_task(task.to_string());
         }
+    }
+
+    pub fn add_monthly_chores(&mut self, pile: &ChorePile) -> () {
+        
     }
 }
 

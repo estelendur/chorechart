@@ -21,15 +21,12 @@ fn main() {
         }
     }
     for pile in data.weekly.iter() {
-        println!("weekly pile {:?}", pile);
         let tasks = pile.tasks.clone();
         // No weekly chores on Friday
         let weekly_fraction = (tasks.len() as f32 / 6.0).ceil() as usize;
         let weekly_parts = tasks.chunks(weekly_fraction);
         let mut weekly_parts = weekly_parts.into_iter().enumerate();
-        println!("weekly chunks {:?}", weekly_parts);
         while let Some((n, chunk)) = weekly_parts.next() {
-            println!("chunk {}", n);
             // We're pretending day 0 is sunday
             let n = match n {
                 5 => 6,
@@ -41,8 +38,32 @@ fn main() {
                 people: pile.people.clone(),
                 tasks: chunk.to_vec()
             };
-            println!("adding chores {:?} to day {}", chunk, n);
+            day.add_chores(&temp_pile, n);
+        }
+    }
+    let mut weekly_on_day = data.weekly_on_day.into_iter().enumerate();
+    while let Some((n, pile)) = weekly_on_day.next() {
+        if let Some(day_index) = pile.day {
+            let day = &mut week[day_index as usize];
             day.add_chores(&pile, n);
+        }
+    }
+    let monthly_piles = data.monthly.iter();
+    for pile in monthly_piles {
+        let mut tasks = pile.tasks.iter();
+        for day in week.clone() {
+            for mut chunk in day.chunks {
+                if pile.people.contains(&chunk.person) {
+                    let chunk_len = chunk.chores.len();
+                    for n in 0..chunk_len {
+                        if chunk.chores[n] == "" {
+                            if let Some(task) = tasks.next() {
+                                std::mem::replace(&mut chunk.chores[n], task.to_string());
+                            }
+                        }
+                    }
+                }
+            }
         }
     }
 

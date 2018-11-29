@@ -67,6 +67,9 @@ fn main() {
         }
     }
 
-    println!("{:?}", week[0]);
-    println!("{:?}", week[1]);
+    let week: Vec<Vec<String>> = week.iter()
+        .map(|day| day.render())
+        .collect();
+
+    println!("{:?}", week);
 }

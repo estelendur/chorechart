@@ -1,5 +1,5 @@
 pub trait Render {
-    fn render(&self) -> String;
+    fn render(&self) -> Vec<String>;
 }
 
 #[derive(Debug, Deserialize)]
@@ -34,10 +34,34 @@ impl ChoreChunk {
     }
 }
 
+impl Render for ChoreChunk {
+    fn render(&self) -> Vec<String> {
+        let mut tags = vec![];
+        tags.push(format!("<td><strong>{}</strong></td>", self.person));
+        for n in 0..self.chores.len() {
+            tags.push(format!("<td>{}</td>", self.chores[n]));
+        };
+        tags
+    }
+}
+
 #[derive(Debug, Clone)]
 pub struct ChoreDay {
     pub day: u8,
     pub chunks: Vec<ChoreChunk>,
+}
+
+impl Render for ChoreDay {
+    fn render(&self) -> Vec<String> {
+        let mut tags = vec![];
+        let days = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
+        tags.push(format!("<th><strong>{}</strong></th>", days[self.day as usize]));
+        for n in 0..self.chunks.len() {
+            let mut render = self.chunks[n].render();
+            tags.append(&mut render);
+        };
+        tags
+    }
 }
 
 impl ChoreDay {
@@ -51,7 +75,7 @@ impl ChoreDay {
 
     pub fn new_week(people: Vec<String>) -> Vec<Self> {
         let mut week = vec![];
-        for n in 1..=7 {
+        for n in 0..7 {
             week.push(Self::new(n, &people));
         };
         week
@@ -69,10 +93,6 @@ impl ChoreDay {
             let chunk = &mut chunks[chunk_index];
             chunk.add_task(task.to_string());
         }
-    }
-
-    pub fn add_monthly_chores(&mut self, pile: &ChorePile) -> () {
-        
     }
 }
 

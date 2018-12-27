@@ -6,6 +6,7 @@ extern crate serde_derive;
 extern crate serde_json;
 
 use chrono::{Date, DateTime, Local, Weekday};
+use serde::{Deserialize, Deserializer};
 use std::str::FromStr;
 use std::path::Path;
 use std::fs::File;
@@ -18,7 +19,26 @@ enum Recurrence {
     Monthly
 }
 
-#[derive(Debug, Serialize)]
+impl<'de> Deserialize<'de> for Recurrence {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error> where D: Deserializer<'de> {
+        use serde::de::Error;
+
+        let s = String::deserialize(deserializer)?;
+
+        match s.as_ref() {
+            "Daily" => Ok(Recurrence::Daily),
+            "Monthly" => Ok(Recurrence::Monthly),
+            other => {
+                match Weekday::from_str(&other) {
+                    Ok(weekday) => Ok(Recurrence::Weekly(weekday)),
+                    _ => Err(Error::custom(format!("not a valid day: {}", other)))
+                }
+            }
+        }
+    }
+}
+
+#[derive(Debug, Deserialize, Serialize)]
 struct AbstractChore {
     name: String,
     recurrence: Recurrence,
@@ -60,9 +80,24 @@ fn build_calendar(start: Date<Local>) -> (Vec<Day>, Vec<Weekday>) {
     (month, header_days)
 }
 
+fn read_chores(data_file: &Path) -> Vec<AbstractChore> {
+    let mut chores = vec![];
+    let mut csv_rdr = csv::Reader::from_path(data_file).unwrap();
+    let mut iter = csv_rdr.deserialize();
+    if let Some(result) = iter.next() {
+        match result {
+            Ok(record) => chores.push(record),
+            _ => {}
+        }
+    }
+    chores
+}
+
 fn main() {
     let (month, header_days) = build_calendar(Local::now().date());
     println!("{:?}", month);
+    let chores = read_chores(Path::new("./data.txt"));
+    println!("{:?}", chores);
     let tera = compile_templates!("./templates/*");
     let context = json!({
         "month": &month,

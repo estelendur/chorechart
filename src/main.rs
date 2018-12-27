@@ -1,75 +1,55 @@
-#[macro_use]
-extern crate serde_derive;
+extern crate csv;
+extern crate chrono;
 
-extern crate serde_json;
+use chrono::{Date, DateTime, Local, Weekday};
+use std::str::FromStr;
 
-mod models;
+#[derive(Debug)]
+enum Recurrence {
+    Daily,
+    Weekly(Weekday),
+    Monthly
+}
 
-use crate::models::*;
+#[derive(Debug)]
+struct AbstractChore {
+    name: String,
+    recurrence: Recurrence,
+    people: Vec<String>
+}
+
+#[derive(Debug)]
+struct ManifestChore {
+    name: String,
+    day: Weekday,
+    person: String
+}
+
+#[derive(Debug)]
+struct Day {
+    day: Weekday,
+    date: Date<Local>,
+    chores: Vec<ManifestChore>
+}
+
+fn build_calendar(start: Date<Local>) -> Vec<Day> {
+    let mut month = vec![];
+    let mut now = start.clone();
+    while month.len() < 28 {
+        // If this fails, chrono isn't doing its job
+        let day = Weekday::from_str(&format!("{}", now.format("%a"))).unwrap();
+        let new_day = Day {
+            day,
+            date: now,
+            chores: vec![]
+        };
+        month.push(new_day);
+        now = now.succ();
+    }
+    return month
+}
 
 fn main() {
-    let data: ChoreData = serde_json::from_str(include!("../data.txt"))
-        .expect("Invalid data format!");
-    let mut week: Vec<ChoreDay> = ChoreDay::new_week(data.people);
-    println!("{:?}", week[0]);
-    println!("{:?}", week[1]);
-    println!("---------------------------");
-    for n in 0..7 {
-        let day = &mut week[n];
-        for pile in data.daily.iter() {
-            day.add_chores(&pile, n);
-        }
-    }
-    for pile in data.weekly.iter() {
-        let tasks = pile.tasks.clone();
-        // No weekly chores on Friday
-        let weekly_fraction = (tasks.len() as f32 / 6.0).ceil() as usize;
-        let weekly_parts = tasks.chunks(weekly_fraction);
-        let mut weekly_parts = weekly_parts.into_iter().enumerate();
-        while let Some((n, chunk)) = weekly_parts.next() {
-            // We're pretending day 0 is sunday
-            let n = match n {
-                5 => 6,
-                _ => n
-            };
-            let day = &mut week[n];
-            let temp_pile = ChorePile {
-                day: None,
-                people: pile.people.clone(),
-                tasks: chunk.to_vec()
-            };
-            day.add_chores(&temp_pile, n);
-        }
-    }
-    let mut weekly_on_day = data.weekly_on_day.into_iter().enumerate();
-    while let Some((n, pile)) = weekly_on_day.next() {
-        if let Some(day_index) = pile.day {
-            let day = &mut week[day_index as usize];
-            day.add_chores(&pile, n);
-        }
-    }
-    let monthly_piles = data.monthly.iter();
-    for pile in monthly_piles {
-        let mut tasks = pile.tasks.iter();
-        for day in week.clone() {
-            for mut chunk in day.chunks {
-                if pile.people.contains(&chunk.person) {
-                    let chunk_len = chunk.chores.len();
-                    for n in 0..chunk_len {
-                        if chunk.chores[n] == "" {
-                            if let Some(task) = tasks.next() {
-                                std::mem::replace(&mut chunk.chores[n], task.to_string());
-                            }
-                        }
-                    }
-                }
-            }
-        }
-    }
-
-    let week: Vec<Vec<String>> = week.iter()
-        .map(|day| day.render())
-        .collect();
-
-    println!("{:?}", week);
+    let month = build_calendar(Local::now().date());
+    println!("{:?}", month)
 }

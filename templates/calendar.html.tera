@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <link rel="stylesheet" type="text/css" href="styles.css" />
+    <title>Chores</title>
+  </head>
+  <body>
+    <div class="wrapper">
+      <div>Sunday</div>
+      <div>Monday</div>
+      <div>Tuesday</div>
+      <div>Wednesday</div>
+      <div>Thursday</div>
+      <div>Friday</div>
+      <div>Saturday</div>
+      {% for day in month %}
+        <div>
+          {{ day.date_string }}
+        </div>
+      {% endfor %}
+  </body>
+</html>

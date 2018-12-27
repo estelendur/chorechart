@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <link rel="stylesheet" type="text/css" href="templates/styles.css" />
+    <title>Chores</title>
+  </head>
+  <body>
+    <div class="wrapper">
+      {% for day in header_days %}
+      <div class="header">{{ day }}</div>
+      {% endfor %}
+      {% for day in month %}
+        <div>
+          {{ day.date_string }}
+        </div>
+      {% endfor %}
+  </body>
+</html>

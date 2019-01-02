@@ -5,7 +5,7 @@ extern crate serde_derive;
 #[macro_use]
 extern crate serde_json;
 
-use chrono::{Date, DateTime, Local, Weekday};
+use chrono::{Date, Local, Weekday};
 use serde::{Deserialize, Deserializer};
 use std::str::FromStr;
 use std::path::Path;
@@ -42,14 +42,25 @@ impl<'de> Deserialize<'de> for Recurrence {
 struct AbstractChore {
     name: String,
     recurrence: Recurrence,
-    people: Vec<String>
+    weight: u32,
+    people: Vec<String>,
 }
 
 #[derive(Debug, Serialize)]
 struct ManifestChore {
     name: String,
-    day: Weekday,
-    person: String
+    person: String,
+    weight: u32,
+}
+
+impl ManifestChore {
+    fn from_abstract(chore: AbstractChore, person: String) -> ManifestChore {
+        ManifestChore {
+            name: chore.name,
+            person: person,
+            weight: chore.weight,
+        }
+    }
 }
 
 #[derive(Debug, Serialize)]
@@ -82,22 +93,34 @@ fn build_calendar(start: Date<Local>) -> (Vec<Day>, Vec<Weekday>) {
 
 fn read_chores(data_file: &Path) -> Vec<AbstractChore> {
     let mut chores = vec![];
-    let mut csv_rdr = csv::Reader::from_path(data_file).unwrap();
-    let mut iter = csv_rdr.deserialize();
-    if let Some(result) = iter.next() {
-        match result {
-            Ok(record) => chores.push(record),
-            _ => {}
+    let csv_rdr = csv::ReaderBuilder::new()
+        .flexible(true)
+        .has_headers(true)
+        .from_path(data_file)
+        .unwrap();
+    let mut iter = csv_rdr.into_records();
+    while let Some(record_result) = iter.next() {
+        match record_result {
+            Ok(record) => {
+                match record.deserialize(None) {
+                    Ok(chore) => chores.push(chore),
+                    Err(e) => println!("chore error: {:?}", e),
+                }
+            },
+            Err(e) => println!("record error: {:?}", e),
         }
     }
     chores
 }
 
+fn fill_calendar(month: Vec<Day>, abstract_chores: Vec<AbstractChore>) -> Vec<Day> {
+    month
+}
+
 fn main() {
     let (month, header_days) = build_calendar(Local::now().date());
-    println!("{:?}", month);
-    let chores = read_chores(Path::new("./data.txt"));
-    println!("{:?}", chores);
+    let abstract_chores = read_chores(Path::new("./data.txt"));
+
     let tera = compile_templates!("./templates/*");
     let context = json!({
         "month": &month,
